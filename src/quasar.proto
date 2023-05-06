@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package Quasar.Proto;
+
+option optimize_for = LITE_RUNTIME;
+
+message Signature {
+  bytes data = 1;
+  bytes signer = 2;
+}
+
+message Certificate {
+  repeated Signature signatures = 1;
+}
+
+message Block {
+  bytes parent = 1;
+  bytes payload = 2;
+  Certificate certificate = 3;
+  uint64 round = 4;
+}
+
+message Message {
+  bytes sender = 1;
+  bytes signature = 2;
+  oneof data {
+    Block proposal = 3;
+    Vote vote = 4;
+    Wish wish = 5;
+    Advance advance = 6;
+  }
+}
+
+message Vote {
+  uint64 round = 1;
+}
+
+message Wish {
+  uint64 round = 1;
+}
+
+message Advance {
+  Certificate certificate = 1;
+  uint64 round = 2;
+}
