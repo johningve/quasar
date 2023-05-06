@@ -1,28 +1,52 @@
 #pragma once
 
+#include <stdexcept>
 #include <zmq.hpp>
 
-#include "types.h"
 #include "quasar.pb.h"
+#include "types.h"
 
-namespace Quasar {
+namespace Quasar
+{
 
-    class INetwork {
-    public:
-        virtual void send_message(const Identity &recipient, const Proto::Message &msg) = 0;
-    };
+class NetworkError : std::exception
+{
+  public:
+	enum class Kind
+	{
+		NOT_FOUND
+	};
 
-    class Network : INetwork {
-    public:
-        Network();
+	NetworkError(Kind m_kind, std::string m_detail);
 
-    private:
-        void send_message(const Identity &recipient, const Proto::Message &msg) override;
+	const char *what() const noexcept override;
 
-    private:
-        zmq::context_t context;
+	Kind kind() const;
+	std::string detail() const;
 
+  private:
+	Kind m_kind;
+	std::string m_detail;
+};
 
-    };
+class Network
+{
+  public:
+	virtual void send_message(const Identity &recipient, const Proto::Message &msg) = 0;
+	virtual void broadcast_message(const Proto::Message &msg) = 0;
+	virtual void set_message_handler(std::function<void(Proto::Message &)> handler) = 0;
+};
 
-} // Quasar
+class ZMQNetwork : Network
+{
+  public:
+	ZMQNetwork();
+
+  private:
+	void send_message(const Identity &recipient, const Proto::Message &msg) override;
+
+  private:
+	zmq::context_t context;
+};
+
+} // namespace Quasar

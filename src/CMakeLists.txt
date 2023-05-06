@@ -7,7 +7,8 @@ add_library(quasar
         crypto.cpp crypto.h
         consensus.cpp consensus.h
         blockchain.cpp blockchain.h
-        util/array_hasher.h)
+        testing/test_network.cpp testing/test_network.h
+        quasar.cpp quasar.h)
 
 target_include_directories(quasar PRIVATE
         ${BOTAN_INCLUDE_DIR}

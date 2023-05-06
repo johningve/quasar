@@ -1,3 +1,5 @@
+#include <iomanip>
+#include <sstream>
 #include <utility>
 
 #include "crypto.h"
@@ -5,6 +7,17 @@
 
 namespace Quasar
 {
+
+std::string Hash::to_string() const
+{
+	std::ostringstream ss;
+	ss << std::hex << std::setfill('0');
+	for (auto b : *this)
+	{
+		ss << std::setw(2) << b;
+	}
+	return ss.str();
+}
 
 const std::array<uint8_t, SIGNATURE_LENGTH> &Signature::data() const
 {
@@ -29,6 +42,12 @@ Proto::Signature Signature::to_proto() const
 	return proto;
 }
 
+Signature::Signature(const Proto::Signature &proto)
+{
+	std::copy_n(proto.data().begin(), std::min(proto.data().length(), SIGNATURE_LENGTH), m_data.begin());
+	std::copy_n(proto.signer().begin(), std::min(proto.signer().length(), SIGNATURE_LENGTH), m_signer.begin());
+}
+
 const std::vector<Signature> &Certificate::signatures() const
 {
 	return m_signatures;
@@ -36,6 +55,12 @@ const std::vector<Signature> &Certificate::signatures() const
 
 Certificate::Certificate(const std::vector<Signature> &signatures) : m_signatures(signatures)
 {
+}
+
+Certificate::Certificate(const Proto::Certificate &proto)
+{
+	std::for_each(proto.signatures().begin(), proto.signatures().end(),
+	              [this](auto sig) { this->m_signatures.push_back(Signature{sig}); });
 }
 
 Proto::Certificate Certificate::to_proto() const
@@ -72,6 +97,14 @@ Block::Block(const Hash &m_parent, Certificate m_certificate, Round m_round, con
     : m_parent(m_parent), m_certificate(std::move(m_certificate)), m_round(m_round), m_payload(m_payload)
 {
 	m_hash = Crypto::hash(to_proto().SerializeAsString());
+}
+
+Block::Block(const Proto::Block &proto)
+    : m_round(proto.round()), m_certificate(proto.certificate()), m_hash(Crypto::hash(proto.SerializeAsString()))
+{
+	m_payload.assign((const byte *)proto.payload().data(),
+	                 (const byte *)proto.payload().data() + proto.payload().size());
+	std::copy_n(proto.parent().begin(), std::min(proto.parent().length(), HASH_LENGTH), m_parent.begin());
 }
 
 Hash Block::hash() const
