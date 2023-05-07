@@ -23,7 +23,10 @@ typedef uint64_t Round;
 class Hash : public std::array<uint8_t, HASH_LENGTH>
 {
   public:
-	std::string to_string() const;
+	Hash();
+	explicit Hash(std::string_view hex_string);
+
+	std::string to_hex_string() const;
 };
 
 typedef Hash Identity;

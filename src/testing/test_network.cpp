@@ -1,44 +1,82 @@
-#include <fmt/core.h>
+#include <utility>
 
+#include "../exception.h"
 #include "test_network.h"
 
 namespace Quasar
 {
 
-void TestNetwork::send_message(const Identity &recipient, const Proto::Message &msg)
+TestNetworkNode::TestNetworkNode(std::shared_ptr<TestNetwork> m_network) : m_network(std::move(m_network))
 {
-	auto conn_entry = m_connections.find(recipient);
-	if (conn_entry == m_connections.end())
-	{
-		throw NetworkError{NetworkError::Kind::NOT_FOUND,
-		                   fmt::format("a connection to {:.8} was not found", recipient.to_string())};
-	}
-	// create a copy so that we can allow modification
-	auto my_msg = Proto::Message{msg};
-	conn_entry->second->handle_message(my_msg);
 }
 
-void TestNetwork::broadcast_message(const Proto::Message &msg)
+void TestNetworkNode::send_message(const Identity &recipient, const Proto::Message &msg)
 {
-	std::for_each(m_connections.begin(), m_connections.end(),
-	              [this, msg](auto el) { this->send_message(el.first, msg); });
+	m_network->send_message(recipient, msg);
 }
 
-void TestNetwork::set_message_handler(std::function<void(Proto::Message &)> handler)
+void TestNetworkNode::broadcast_message(const Proto::Message &msg)
+{
+}
+
+void TestNetworkNode::set_message_handler(std::function<void(Proto::Message &)> handler)
 {
 	m_message_handler = std::move(handler);
 }
 
-void TestNetwork::add_connection(const Identity &id, std::shared_ptr<TestNetwork> network)
+void TestNetworkNode::add_message(Proto::Message &msg)
 {
-	m_connections.insert({id, network});
+	m_message_queue.push(msg);
 }
 
-void TestNetwork::handle_message(Proto::Message &msg) const
+void TestNetworkNode::handle_message()
 {
+	if (m_message_queue.empty())
+	{
+		return;
+	}
+
+	auto msg = m_message_queue.front();
+	m_message_queue.pop();
+
 	if (m_message_handler)
 	{
 		m_message_handler(msg);
+	}
+}
+
+std::shared_ptr<TestNetworkNode> TestNetwork::create_node(const Identity &id)
+{
+	auto node = std::make_shared<TestNetworkNode>(shared_from_this());
+	m_nodes.insert({id, node});
+	return node;
+}
+
+void TestNetwork::send_message(const Identity &recipient, const Proto::Message &msg)
+{
+	auto conn_entry = m_nodes.find(recipient);
+	if (conn_entry == m_nodes.end())
+	{
+		throw QUASAR_EXCEPTION("a connection to {:.8} was not found", recipient.to_hex_string());
+	}
+	// create a copy so that we can allow modification
+	auto my_msg = Proto::Message{msg};
+	conn_entry->second->add_message(my_msg);
+}
+
+void TestNetwork::run_for(int ticks)
+{
+	for (int i = 0; i < ticks; i++)
+	{
+		run_single();
+	}
+}
+
+void TestNetwork::run_single()
+{
+	for (auto [_, node] : m_nodes)
+	{
+		node->handle_message();
 	}
 }
 

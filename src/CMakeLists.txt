@@ -8,7 +8,8 @@ add_library(quasar
         consensus.cpp consensus.h
         blockchain.cpp blockchain.h
         testing/test_network.cpp testing/test_network.h
-        quasar.cpp quasar.h)
+        quasar.cpp quasar.h
+        exception.cpp exception.h)
 
 target_include_directories(quasar PRIVATE
         ${BOTAN_INCLUDE_DIR}
@@ -22,7 +23,8 @@ target_link_libraries(quasar PRIVATE
         spdlog::spdlog)
 
 add_executable(tests
-        blockchain_test.cpp)
+        blockchain_test.cpp
+        testing/test_network_test.cpp)
 
 include(Catch)
 catch_discover_tests(tests)

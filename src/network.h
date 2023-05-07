@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdexcept>
 #include <zmq.hpp>
 
 #include "quasar.pb.h"
@@ -8,26 +7,6 @@
 
 namespace Quasar
 {
-
-class NetworkError : std::exception
-{
-  public:
-	enum class Kind
-	{
-		NOT_FOUND
-	};
-
-	NetworkError(Kind m_kind, std::string m_detail);
-
-	const char *what() const noexcept override;
-
-	Kind kind() const;
-	std::string detail() const;
-
-  private:
-	Kind m_kind;
-	std::string m_detail;
-};
 
 class Network
 {

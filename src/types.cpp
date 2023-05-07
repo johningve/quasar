@@ -1,22 +1,40 @@
+#include <botan/exceptn.h>
+#include <botan/hex.h>
 #include <iomanip>
 #include <sstream>
 #include <utility>
 
 #include "crypto.h"
+#include "exception.h"
 #include "types.h"
 
 namespace Quasar
 {
 
-std::string Hash::to_string() const
+Hash::Hash() : std::array<uint8_t, HASH_LENGTH>()
 {
-	std::ostringstream ss;
-	ss << std::hex << std::setfill('0');
-	for (auto b : *this)
+}
+
+Hash::Hash(std::string_view hex_string) : std::array<uint8_t, HASH_LENGTH>()
+{
+	auto decoded_length = hex_string.length() / 2;
+	if (decoded_length > size())
 	{
-		ss << std::setw(2) << b;
+		throw QUASAR_EXCEPTION("hex string with length {} exceeds hash length {}", decoded_length, size());
 	}
-	return ss.str();
+	try
+	{
+		Botan::hex_decode(data(), hex_string.data(), hex_string.length());
+	}
+	catch (Botan::Exception &e)
+	{
+		throw QUASAR_EXCEPTION("{}", e.what());
+	}
+}
+
+std::string Hash::to_hex_string() const
+{
+	return Botan::hex_encode(data(), size());
 }
 
 const std::array<uint8_t, SIGNATURE_LENGTH> &Signature::data() const
