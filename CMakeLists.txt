@@ -14,5 +14,7 @@ find_package(fmt CONFIG REQUIRED)
 find_package(protobuf CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 
+add_compile_definitions(ZMQ_BUILD_DRAFT_API)
+
 add_subdirectory(lib)
 add_subdirectory(src)

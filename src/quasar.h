@@ -22,6 +22,9 @@ class Quasar
 	Quasar(std::shared_ptr<Keystore> keystore, std::shared_ptr<Network> network, const RoundDuration &round_duration,
 	       std::shared_ptr<LeaderRotation> leader_rotation);
 
+	void run();
+	void stop();
+
   private:
 	std::shared_ptr<EventQueue> m_event_queue;
 	std::shared_ptr<Blockchain> m_blockchain;
@@ -31,6 +34,8 @@ class Quasar
 	std::shared_ptr<Consensus> m_consensus;
 	std::shared_ptr<spdlog::logger> m_logger;
 	std::shared_ptr<LeaderRotation> m_leader_rotation;
+
+	bool m_stopped;
 };
 
 } // namespace Quasar

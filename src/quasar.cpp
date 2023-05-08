@@ -46,4 +46,27 @@ Quasar::Quasar(std::shared_ptr<Keystore> keystore, std::shared_ptr<Network> netw
 	                              [](const EventData &event) { std::get<std::function<void()>>(event)(); });
 }
 
+void Quasar::run()
+{
+	using namespace std::chrono_literals;
+
+	std::shared_ptr<PolledNetwork> polled_network;
+
+	if (m_network->type() == NetworkType::POLLED)
+	{
+		polled_network = std::dynamic_pointer_cast<PolledNetwork>(m_network);
+	}
+
+	while (!m_stopped)
+	{
+		m_event_queue->process();
+		polled_network->poll(1ms);
+	}
+}
+
+void Quasar::stop()
+{
+	m_stopped = false;
+}
+
 } // namespace Quasar
