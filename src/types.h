@@ -18,7 +18,7 @@ using std::uint8_t;
 const size_t HASH_LENGTH = 32;
 const size_t SIGNATURE_LENGTH = 32;
 
-typedef uint64_t Round;
+using Round = uint64_t;
 
 class Hash : public std::array<uint8_t, HASH_LENGTH>
 {
@@ -29,7 +29,7 @@ class Hash : public std::array<uint8_t, HASH_LENGTH>
 	std::string to_hex_string() const;
 };
 
-typedef Hash Identity;
+using Identity = Hash;
 
 class Signature
 {

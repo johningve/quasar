@@ -21,13 +21,17 @@ message Block {
 }
 
 message Message {
-  bytes sender = 1;
-  bytes signature = 2;
+  // signature is a cryptographic signature over data
+  Signature signature = 1;
+  MessageData data = 2;
+}
+
+message MessageData {
   oneof data {
-    Block proposal = 3;
-    Vote vote = 4;
-    Wish wish = 5;
-    Advance advance = 6;
+    Block proposal = 1;
+    Vote vote = 2;
+    Wish wish = 3;
+    Advance advance = 4;
   }
 }
 
@@ -41,5 +45,5 @@ message Wish {
 
 message Advance {
   Certificate certificate = 1;
-  uint64 round = 2;
+  Wish wish = 2;
 }

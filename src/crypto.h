@@ -3,23 +3,17 @@
 #include <botan/ecdsa.h>
 #include <botan/pubkey.h>
 
+#include "keystore.h"
 #include "types.h"
 
-namespace Quasar
+namespace Quasar::Crypto
 {
-class Crypto
-{
-  public:
-	static Hash hash(const std::vector<uint8_t> &data);
-	static Hash hash(const std::string &data);
+Hash hash(const std::vector<uint8_t> &data);
+Hash hash(const std::string &data);
 
-	static bool verify(const Signature &signature, const std::vector<uint8_t> &message, const Botan::Public_Key &key);
+bool verify(const Signature &signature, const std::string &message, const Botan::Public_Key &key);
+bool verify_certificate(const Certificate &cert, const std::string &message, const Keystore &keystore);
 
-	explicit Crypto(Botan::ECDSA_PrivateKey key);
+Signature sign(const std::string &message, const Botan::Private_Key &key);
 
-	Signature sign(const std::vector<uint8_t> &message) const;
-
-  private:
-	Botan::ECDSA_PrivateKey m_key;
-};
-} // namespace Quasar
+} // namespace Quasar::Crypto

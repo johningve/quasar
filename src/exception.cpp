@@ -13,4 +13,9 @@ const std::string &Exception::message() const
 	return m_message;
 }
 
+Exception::Kind Exception::kind() const
+{
+	return m_kind;
+}
+
 } // namespace Quasar

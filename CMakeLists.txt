@@ -9,8 +9,10 @@ find_library(BOTAN_LIBRARY botan-2 REQUIRED)
 
 find_package(Catch2 CONFIG REQUIRED)
 find_package(cppzmq CONFIG REQUIRED)
+find_package(eventpp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(protobuf CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 
+add_subdirectory(lib)
 add_subdirectory(src)

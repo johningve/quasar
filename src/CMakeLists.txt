@@ -5,11 +5,10 @@ add_library(quasar
         network.cpp network.h
         types.cpp types.h
         crypto.cpp crypto.h
-        consensus.cpp consensus.h
         blockchain.cpp blockchain.h
         testing/test_network.cpp testing/test_network.h
         quasar.cpp quasar.h
-        exception.cpp exception.h)
+        exception.cpp exception.h keystore.cpp keystore.h consensus.cpp consensus.h synchronizer.cpp synchronizer.h leader_rotation.cpp leader_rotation.h quorum.h)
 
 target_include_directories(quasar PRIVATE
         ${BOTAN_INCLUDE_DIR}
@@ -17,7 +16,9 @@ target_include_directories(quasar PRIVATE
 
 target_link_libraries(quasar PRIVATE
         ${BOTAN_LIBRARY}
+        cpptime
         cppzmq-static
+        eventpp::eventpp
         fmt::fmt
         protobuf::libprotobuf-lite
         spdlog::spdlog)
