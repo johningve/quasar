@@ -6,8 +6,8 @@
 namespace Quasar
 {
 
-TestNetworkNode::TestNetworkNode(Identity identity, std::shared_ptr<TestNetwork> m_network)
-    : m_id(identity), m_network(std::move(m_network))
+TestNetworkNode::TestNetworkNode(Identity identity, std::shared_ptr<TestNetwork> network)
+    : m_id(identity), m_network(std::move(network))
 {
 }
 
@@ -52,6 +52,11 @@ int TestNetworkNode::size()
 	return m_network->size();
 }
 
+std::vector<Identity> TestNetworkNode::connected_peers()
+{
+	return m_network->nodes_except(m_id);
+}
+
 std::shared_ptr<TestNetworkNode> TestNetwork::create_node(const Identity &id)
 {
 	auto node = std::make_shared<TestNetworkNode>(id, shared_from_this());
@@ -86,6 +91,19 @@ void TestNetwork::broadcast_message(const Identity &id_from, const Proto::Messag
 int TestNetwork::size()
 {
 	return (int)m_nodes.size();
+}
+
+std::vector<Identity> TestNetwork::nodes_except(Identity except_id)
+{
+	std::vector<Identity> nodes;
+	for (auto [id, _] : m_nodes)
+	{
+		if (except_id != id)
+		{
+			nodes.push_back(id);
+		}
+	}
+	return nodes;
 }
 
 void TestNetwork::run_for(int ticks)

@@ -12,6 +12,12 @@
 namespace Quasar
 {
 
+struct BlockCertificate
+{
+	Certificate certificate;
+	Hash block_hash;
+};
+
 class Consensus : public std::enable_shared_from_this<Consensus>
 {
   public:
@@ -20,6 +26,7 @@ class Consensus : public std::enable_shared_from_this<Consensus>
 	          const std::shared_ptr<Synchronizer> &synchronizer, const std::shared_ptr<LeaderRotation> &leader_rotation,
 	          const std::shared_ptr<spdlog::logger> &logger);
 
+	// init sets up event handlers
 	void init();
 
   private:
@@ -27,6 +34,9 @@ class Consensus : public std::enable_shared_from_this<Consensus>
 	void handle_proposal(const Signature &sig, const Proto::MessageData &msg);
 	void handle_vote(const Signature &sig, const Proto::MessageData &msg);
 
+	void make_proposal();
+
+	void stop_voting(Round round);
 	void cleanup_votes(Round min_round);
 
 	std::shared_ptr<EventQueue> m_event_queue;
@@ -37,7 +47,9 @@ class Consensus : public std::enable_shared_from_this<Consensus>
 	std::shared_ptr<LeaderRotation> m_leader_rotation;
 	std::shared_ptr<spdlog::logger> m_logger;
 
+	Round m_next_vote_round;
 	std::shared_ptr<Block> m_lock;
+	BlockCertificate m_high_cert;
 	std::unordered_map<Round, std::vector<Signature>> m_votes;
 };
 

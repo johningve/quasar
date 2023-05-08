@@ -1,97 +1,15 @@
-#include <cmath>
-
+#include "synchronizer.h"
 #include "crypto.h"
 #include "quorum.h"
-#include "synchronizer.h"
 
 namespace Quasar
 {
 
-RoundDuration::RoundDuration(uint64_t history_size, double start_timeout, double max_timeout, double timeout_multiplier)
-    : m_max_history_size(history_size), m_mean_duration(start_timeout), m_max_timeout(max_timeout),
-      m_timeout_multiplier(timeout_multiplier)
-{
-}
-
-void RoundDuration::round_started()
-{
-	m_measurement_start = std::chrono::system_clock::now();
-}
-
-void RoundDuration::round_succeeded()
-{
-	if (m_measurement_start.time_since_epoch() == std::chrono::system_clock::duration::zero())
-	{
-		// no measurement was started yet
-		return;
-	}
-
-	double duration = std::chrono::duration<double>(m_measurement_start - std::chrono::system_clock::now()).count();
-
-	m_count++;
-
-	// Reset m2 occasionally such that we will pick up on changes in variance faster.
-	// We store the m2 to prevM2, which will be used when calculating the variance.
-	// This ensures that at least 'limit' measurements have contributed to the approximate variance.
-	if (m_count % m_max_history_size == 0)
-	{
-		m_prev_mean_diff_2 = m_mean_diff_2;
-		m_mean_diff_2 = 0;
-	}
-
-	double c;
-	if (m_count > m_max_history_size)
-	{
-		c = (double)m_max_history_size;
-		// discard one measurement
-		m_mean_duration -= m_mean_duration / c;
-	}
-	else
-	{
-		c = (double)m_count;
-	}
-
-	// Welford's algorithm
-	double d1 = duration - m_mean_duration;
-	m_mean_duration += d1 / c;
-	double d2 = duration - m_mean_duration;
-	m_mean_diff_2 += d1 * d2;
-}
-
-void RoundDuration::round_timed_out()
-{
-	m_mean_duration *= m_timeout_multiplier;
-}
-
-std::chrono::duration<double> RoundDuration::expected_duration()
-{
-	double conf = 1.96; // 95% confidence
-	double dev;
-
-	if (m_count > 1)
-	{
-		auto c = (double)m_count;
-		double m2 = m_mean_diff_2;
-		if (m_count >= m_max_history_size)
-		{
-			c = m_max_history_size + m_count % m_max_history_size;
-			m2 += m_prev_mean_diff_2;
-		}
-		dev = std::sqrt(m2 / c);
-	}
-
-	double duration = m_mean_duration + dev * conf;
-	if (m_max_timeout > 0 && duration > m_max_timeout)
-	{
-		duration = m_max_timeout;
-	}
-
-	return std::chrono::duration<double>(duration);
-}
-
-Synchronizer::Synchronizer(const std::shared_ptr<EventQueue> &event_queue, const std::shared_ptr<Network> &network,
-                           const std::shared_ptr<Keystore> &keystore, const std::shared_ptr<spdlog::logger> &logger)
-    : m_round(0), m_event_queue(event_queue), m_network(network), m_keystore(keystore), m_logger(logger)
+Synchronizer::Synchronizer(const RoundDuration &round_duration, const std::shared_ptr<EventQueue> &event_queue,
+                           const std::shared_ptr<Network> &network, const std::shared_ptr<Keystore> &keystore,
+                           const std::shared_ptr<spdlog::logger> &logger)
+    : m_round(0), m_round_duration(round_duration), m_event_queue(event_queue), m_network(network),
+      m_keystore(keystore), m_logger(logger)
 {
 }
 
@@ -100,6 +18,11 @@ void Synchronizer::init()
 	m_event_queue->appendListener(EventType::MESSAGE, [self = shared_from_this()](const EventData &event) {
 		auto &pair = std::get<std::pair<Signature, Proto::MessageData>>(event);
 		self->handle_message(pair.first, pair.second);
+	});
+
+	m_event_queue->appendListener(EventType::TIMEOUT, [self = shared_from_this()](const EventData &event) {
+		auto round = std::get<Round>(event);
+		self->handle_timeout(round);
 	});
 }
 
@@ -115,6 +38,8 @@ void Synchronizer::advance_to(Round round, bool timeout)
 		return;
 	}
 
+	stop_timeout_timer();
+
 	if (timeout)
 	{
 		m_round_duration.round_timed_out();
@@ -124,10 +49,13 @@ void Synchronizer::advance_to(Round round, bool timeout)
 		m_round_duration.round_succeeded();
 	}
 
-	// TODO: cancel timers, etc.
 	m_round = round;
 
+	start_timeout_timer();
+
 	m_round_duration.round_started();
+
+	m_event_queue->dispatch(EventType::ADVANCE, std::make_pair(round, timeout));
 }
 
 void Synchronizer::handle_message(const Signature &sig, const Proto::MessageData &msg)
@@ -162,7 +90,7 @@ void Synchronizer::handle_wish(const Signature &sig, const Proto::MessageData &m
 		// clear wishes so that we don't create the cert again if another wish shows up later
 		wishes.clear();
 
-		// TODO: advance round, propose
+		perform_advance(cert, round);
 	}
 }
 
@@ -186,7 +114,24 @@ void Synchronizer::handle_advance(const Signature &sig, const Proto::MessageData
 
 	advance_to(round);
 	cleanup_wishes(round);
-	// TODO: propose
+}
+
+void Synchronizer::handle_timeout(Quasar::Round round)
+{
+	Proto::Wish wish;
+	wish.set_round(round);
+	auto sig = Crypto::sign(wish.SerializeAsString(), *m_keystore->private_key());
+
+	Proto::Message msg;
+	auto sig_ptr = msg.mutable_signature();
+	*sig_ptr = sig.to_proto();
+
+	auto data_ptr = msg.mutable_data();
+	auto wish_ptr = data_ptr->mutable_wish();
+	*wish_ptr = wish;
+
+	m_network->broadcast_message(msg);
+	handle_wish(sig, *data_ptr);
 }
 
 void Synchronizer::cleanup_wishes(Round min_round)
@@ -202,6 +147,43 @@ void Synchronizer::cleanup_wishes(Round min_round)
 			it++;
 		}
 	}
+}
+
+void Synchronizer::start_timeout_timer()
+{
+	auto duration = m_round_duration.expected_duration();
+
+	m_timeout_timer = m_timer_manager.add(duration, [self = shared_from_this(), round = m_round](auto timer_id) {
+		// prevent this timer from executing again
+		self->m_timer_manager.remove(timer_id);
+
+		self->m_event_queue->dispatch(EventType::TIMEOUT, round);
+	});
+}
+
+void Synchronizer::stop_timeout_timer()
+{
+	m_timer_manager.remove(m_timeout_timer);
+}
+
+void Synchronizer::perform_advance(const Certificate &cert, Round round)
+{
+	Proto::Message msg;
+	auto msg_data_ptr = msg.mutable_data();
+	auto advance_ptr = msg_data_ptr->mutable_advance();
+
+	auto cert_ptr = advance_ptr->mutable_certificate();
+	*cert_ptr = cert.to_proto();
+
+	auto wish_ptr = advance_ptr->mutable_wish();
+	wish_ptr->set_round(round);
+
+	auto sig = Crypto::sign(msg_data_ptr->SerializeAsString(), *m_keystore->private_key());
+	auto msg_sig_ptr = msg.mutable_signature();
+	*msg_sig_ptr = sig.to_proto();
+
+	m_network->broadcast_message(msg);
+	handle_advance(sig, *msg_data_ptr);
 }
 
 } // namespace Quasar

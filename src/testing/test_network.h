@@ -11,14 +11,15 @@ class TestNetwork;
 
 class TestNetworkNode : public Network
 {
-  public:
-	explicit TestNetworkNode(Identity identity, std::shared_ptr<TestNetwork> m_network);
 
   public:
+	explicit TestNetworkNode(Identity identity, std::shared_ptr<TestNetwork> network);
+
 	void send_message(const Identity &recipient, const Proto::Message &msg) override;
 	void broadcast_message(const Proto::Message &msg) override;
 	void set_message_handler(std::function<void(Proto::Message &)> handler) override;
 	int size() override;
+	std::vector<Identity> connected_peers() override;
 
 	void add_message(const Proto::Message &msg);
 	void handle_message();
@@ -37,6 +38,7 @@ class TestNetwork : public std::enable_shared_from_this<TestNetwork>
 	void send_message(const Identity &recipient, const Proto::Message &msg);
 	void broadcast_message(const Identity &id_from, const Proto::Message &msg);
 	int size();
+	std::vector<Identity> nodes_except(Identity except_id);
 	void run_for(int ticks);
 	void run_single();
 

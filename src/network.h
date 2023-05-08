@@ -15,6 +15,7 @@ class Network
 	virtual void broadcast_message(const Proto::Message &msg) = 0;
 	virtual void set_message_handler(std::function<void(Proto::Message &)> handler) = 0;
 	virtual int size() = 0;
+	virtual std::vector<Identity> connected_peers() = 0;
 };
 
 class ZMQNetwork : Network

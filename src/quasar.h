@@ -19,7 +19,7 @@ namespace Quasar
 class Quasar
 {
   public:
-	Quasar(std::shared_ptr<Keystore> keystore, std::shared_ptr<Network> network,
+	Quasar(std::shared_ptr<Keystore> keystore, std::shared_ptr<Network> network, const RoundDuration &round_duration,
 	       std::shared_ptr<LeaderRotation> leader_rotation);
 
   private:
