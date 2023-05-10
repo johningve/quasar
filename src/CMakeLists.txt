@@ -25,7 +25,7 @@ target_link_libraries(quasar PRIVATE
 
 add_executable(tests
         blockchain_test.cpp
-        testing/test_network_test.cpp)
+        testing/test_network_test.cpp network_test.cpp)
 
 include(Catch)
 catch_discover_tests(tests)

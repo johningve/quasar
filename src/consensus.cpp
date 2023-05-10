@@ -12,7 +12,7 @@ Consensus::Consensus(const std::shared_ptr<EventQueue> &event_queue, const std::
                      const std::shared_ptr<spdlog::logger> &logger)
     : m_event_queue(event_queue), m_blockchain(blockchain), m_keystore(keystore), m_network(network),
       m_synchronizer(synchronizer), m_leader_rotation(leader_rotation), m_logger(logger),
-      m_lock(std::make_shared<Block>(GENESIS)), m_high_cert(GENESIS_CERT)
+      m_lock(std::make_shared<Block>(GENESIS)), m_high_cert({GENESIS_CERT, GENESIS.hash()})
 {
 }
 

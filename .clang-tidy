@@ -52,7 +52,7 @@ bugprone-unused-raii,
 bugprone-unused-return-value,
 bugprone-use-after-move,
 bugprone-virtual-near-miss,
-cert-dcl21-cpp,
+# cert-dcl21-cpp,
 cert-dcl58-cpp,
 cert-err34-c,
 cert-err52-cpp,
@@ -145,7 +145,9 @@ readability-static-accessed-through-instance,
 readability-static-definition-in-anonymous-namespace,
 readability-string-compare,
 readability-uniqueptr-delete-release,
-readability-use-anyofallof'
+readability-use-anyofallof,
+misc-const-correctness'
 
 CheckOptions:
-  readability-avoid-const-params-in-decls.IgnoreMacros: true
+  - key: readability-avoid-const-params-in-decls.IgnoreMacros
+    value: true

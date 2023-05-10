@@ -6,6 +6,7 @@
 
 namespace Quasar
 {
+
 ZMQNetwork::ZMQNetwork(int port) : m_context(1), m_listener(m_context, zmq::socket_type::pull)
 {
 	m_listener.bind(fmt::format("tcp://*:{}", port));

@@ -1,27 +1,45 @@
 {
-  "name" : "quasar",
-  "version-string" : "1.0.0",
-  "builtin-baseline" : "0ba60bfef5dea4cb2599daa7ad8364e309835a68",
-  "dependencies" : [ {
-    "name" : "cppzmq",
-    "version>=" : "4.9.0"
-  }, {
-    "name" : "spdlog",
-    "version>=" : "1.11.0"
-  }, {
-    "name" : "fmt",
-    "version>=" : "9.1.0#1"
-  }, {
-    "name" : "botan",
-    "version>=" : "2.19.3"
-  }, {
-    "name" : "catch2",
-    "version>=" : "3.3.1"
-  }, {
-    "name" : "protobuf",
-    "version>=" : "3.21.12"
-  }, {
-    "name" : "eventpp",
-    "version>=" : "0.1.2"
-  } ]
+  "name": "quasar",
+  "version-string": "1.0.0",
+  "builtin-baseline": "0ba60bfef5dea4cb2599daa7ad8364e309835a68",
+  "dependencies": [
+    {
+      "name": "cppzmq",
+      "version>=": "4.9.0",
+      "features": [
+        "draft"
+      ]
+    },
+    {
+      "name": "spdlog",
+      "version>=": "1.11.0"
+    },
+    {
+      "name": "fmt",
+      "version>=": "9.1.0#1"
+    },
+    {
+      "name": "botan",
+      "version>=": "2.19.3"
+    },
+    {
+      "name": "catch2",
+      "version>=": "3.3.1"
+    },
+    {
+      "name": "protobuf",
+      "version>=": "3.21.12"
+    },
+    {
+      "name": "eventpp",
+      "version>=": "0.1.2"
+    },
+    {
+      "name": "zeromq",
+      "version>=": "4.3.4#6",
+      "features": [
+        "draft"
+      ]
+    }
+  ]
 }

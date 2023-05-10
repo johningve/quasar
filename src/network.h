@@ -18,7 +18,13 @@ enum class NetworkType
 class Network
 {
   public:
-	virtual NetworkType type() = 0;
+	virtual ~Network() = default;
+
+	virtual NetworkType type()
+	{
+		return NetworkType::UNSPECIFIED;
+	};
+
 	virtual void send_message(const Identity &recipient, const Proto::Message &msg) = 0;
 	virtual void broadcast_message(const Proto::Message &msg) = 0;
 	virtual void set_message_handler(std::function<void(Proto::Message &)> handler) = 0;
@@ -35,7 +41,7 @@ class PolledNetwork : public Network
 class ZMQNetwork : public PolledNetwork, public std::enable_shared_from_this<ZMQNetwork>
 {
   public:
-	ZMQNetwork(int port);
+	explicit ZMQNetwork(int port);
 
 	NetworkType type() override;
 
