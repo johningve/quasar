@@ -9,7 +9,7 @@ Synchronizer::Synchronizer(const RoundDuration &round_duration, const std::share
                            const std::shared_ptr<Network> &network, const std::shared_ptr<Keystore> &keystore,
                            const std::shared_ptr<spdlog::logger> &logger)
     : m_round(0), m_round_duration(round_duration), m_event_queue(event_queue), m_network(network),
-      m_keystore(keystore), m_logger(logger)
+      m_keystore(keystore), m_logger(logger), m_timeout_timer(0)
 {
 }
 
@@ -58,6 +58,11 @@ void Synchronizer::advance_to(Round round, bool timeout)
 	m_event_queue->dispatch(EventType::ADVANCE, std::make_pair(round, timeout));
 }
 
+std::chrono::duration<double> Synchronizer::round_duration() const
+{
+	return m_round_duration.expected_duration();
+}
+
 void Synchronizer::handle_message(const Signature &sig, const Proto::MessageData &msg)
 {
 	if (msg.has_wish())
@@ -86,7 +91,7 @@ void Synchronizer::handle_wish(const Signature &sig, const Proto::MessageData &m
 
 	if (wishes.size() >= quorum_size(m_network->size()))
 	{
-		Certificate cert(wishes);
+		const Certificate cert(wishes);
 		// clear wishes so that we don't create the cert again if another wish shows up later
 		wishes.clear();
 
@@ -97,7 +102,7 @@ void Synchronizer::handle_wish(const Signature &sig, const Proto::MessageData &m
 void Synchronizer::handle_advance(const Signature &sig, const Proto::MessageData &msg)
 {
 	auto round = (Round)msg.advance().wish().round();
-	Certificate cert{msg.advance().certificate()};
+	const Certificate cert{msg.advance().certificate()};
 
 	if (m_round >= round)
 	{

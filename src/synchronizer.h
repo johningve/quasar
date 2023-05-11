@@ -26,6 +26,8 @@ class Synchronizer : public std::enable_shared_from_this<Synchronizer>
 	// advance_to should be called by the view protocol upon obtaining a certificate for round-1
 	void advance_to(Round round, bool timeout = false);
 
+	std::chrono::duration<double> round_duration() const;
+
   private:
 	void handle_message(const Signature &sig, const Proto::MessageData &msg);
 	void handle_wish(const Signature &sig, const Proto::MessageData &msg);

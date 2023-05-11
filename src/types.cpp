@@ -15,26 +15,63 @@ Hash::Hash() : std::array<uint8_t, HASH_LENGTH>()
 {
 }
 
-Hash::Hash(std::string_view hex_string) : std::array<uint8_t, HASH_LENGTH>()
+Hash Hash::from_byte_string(const std::string &byte_string)
 {
-	auto decoded_length = hex_string.length() / 2;
-	if (decoded_length > size())
+	Hash hash;
+
+	if (byte_string.size() > hash.size())
 	{
-		throw QUASAR_EXCEPTION("hex string with length {} exceeds hash length {}", decoded_length, size());
+		throw QUASAR_EXCEPTION("byte string with length {} exceeds hash size {}", byte_string.size(), hash.size());
+	}
+
+	std::copy(byte_string.begin(), byte_string.end(), hash.begin());
+
+	return hash;
+}
+
+Hash Hash::from_hex_string(const std::string &hex_string)
+{
+	Hash hash;
+	auto decoded_length = hex_string.length() / 2;
+	if (decoded_length > hash.size())
+	{
+		throw QUASAR_EXCEPTION("hex string with decoded size {} exceeds hash size {}", decoded_length, hash.size());
 	}
 	try
 	{
-		Botan::hex_decode(data(), hex_string.data(), hex_string.length());
+		Botan::hex_decode(hash.data(), hex_string.data(), hex_string.length());
 	}
 	catch (Botan::Exception &e)
 	{
 		throw QUASAR_EXCEPTION("{}", e.what());
 	}
+	return hash;
+}
+
+std::string Hash::to_byte_string() const
+{
+	return {begin(), end()};
 }
 
 std::string Hash::to_hex_string() const
 {
 	return Botan::hex_encode(data(), size());
+}
+
+Transaction::Transaction(const std::vector<byte> &data) : m_data(data)
+{
+	const std::vector<uint8_t> uint_vec{(const uint8_t *)m_data.data(), (const uint8_t *)m_data.data() + m_data.size()};
+	m_hash = Crypto::hash(uint_vec);
+}
+
+const std::vector<byte> &Transaction::data() const
+{
+	return m_data;
+}
+
+const Hash &Transaction::hash() const
+{
+	return m_hash;
 }
 
 const std::array<uint8_t, SIGNATURE_LENGTH> &Signature::data() const
@@ -106,12 +143,12 @@ Round Block::round() const
 	return m_round;
 }
 
-const std::vector<byte> &Block::payload() const
+const std::vector<Transaction> &Block::payload() const
 {
 	return m_payload;
 }
 
-Block::Block(const Hash &m_parent, Certificate m_certificate, Round m_round, const std::vector<byte> &m_payload)
+Block::Block(const Hash &m_parent, Certificate m_certificate, Round m_round, const std::vector<Transaction> &m_payload)
     : m_parent(m_parent), m_certificate(std::move(m_certificate)), m_round(m_round), m_payload(m_payload)
 {
 	m_hash = Crypto::hash(to_proto().SerializeAsString());
@@ -120,8 +157,10 @@ Block::Block(const Hash &m_parent, Certificate m_certificate, Round m_round, con
 Block::Block(const Proto::Block &proto)
     : m_round(proto.round()), m_certificate(proto.certificate()), m_hash(Crypto::hash(proto.SerializeAsString()))
 {
-	m_payload.assign((const byte *)proto.payload().data(),
-	                 (const byte *)proto.payload().data() + proto.payload().size());
+	std::for_each(proto.payload().transactions().begin(), proto.payload().transactions().end(), [this](auto raw_tx) {
+		this->m_payload.push_back(
+		    Transaction{{(const byte *)raw_tx.data(), (const byte *)raw_tx.data() + raw_tx.size()}});
+	});
 	std::copy_n(proto.parent().begin(), std::min(proto.parent().length(), HASH_LENGTH), m_parent.begin());
 }
 
@@ -135,9 +174,12 @@ Proto::Block Block::to_proto() const
 	Proto::Block proto{};
 	proto.set_parent(m_parent.data(), m_parent.size());
 	proto.set_round(m_round);
-	proto.set_payload(m_payload.data(), m_payload.size());
+	auto payload_mut = proto.mutable_payload();
+	std::for_each(m_payload.begin(), m_payload.end(),
+	              [payload_mut](auto tx) { payload_mut->add_transactions(tx.data().data(), tx.data().size()); });
 	auto cert_ptr = proto.mutable_certificate();
 	*cert_ptr = m_certificate.to_proto();
 	return proto;
 }
+
 } // namespace Quasar

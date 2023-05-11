@@ -1,4 +1,3 @@
-#include <botan/hash.h>
 #include <cassert>
 #include <utility>
 
@@ -7,26 +6,6 @@
 
 namespace Quasar::Crypto
 {
-
-template <typename T> Hash hash_impl(T data)
-{
-	Hash hash{};
-	auto hash_fn = Botan::HashFunction::create("SHA-256");
-	assert(hash_fn != nullptr);
-	hash_fn->update(data);
-	hash_fn->final(hash.data());
-	return hash;
-}
-
-Hash hash(const std::vector<uint8_t> &data)
-{
-	return hash_impl<const std::vector<uint8_t> &>(data);
-}
-
-Hash hash(const std::string &data)
-{
-	return hash_impl<const std::string &>(data);
-}
 
 Signature sign(const std::string &message, const Botan::Private_Key &private_key)
 {

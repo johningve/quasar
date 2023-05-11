@@ -7,14 +7,14 @@ TEST_CASE("ZMQNetwork can connect", "[network]")
 	auto net1 = std::make_shared<Quasar::ZMQNetwork>(8001);
 	auto net2 = std::make_shared<Quasar::ZMQNetwork>(8002);
 
-	REQUIRE_NOTHROW(net2->connect_to(Quasar::Identity{"00"}, "localhost:8001"));
+	REQUIRE_NOTHROW(net2->connect_to(Quasar::Identity::from_hex_string("00"), "localhost:8001"));
 }
 
 TEST_CASE("ZMQNetwork can send message", "[network]")
 {
 	using namespace std::chrono_literals;
 
-	const Quasar::Identity id1{"01"};
+	const auto id1 = Quasar::Identity::from_hex_string("01");
 
 	auto net1 = std::make_shared<Quasar::ZMQNetwork>(8001);
 	auto net2 = std::make_shared<Quasar::ZMQNetwork>(8002);

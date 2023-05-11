@@ -47,6 +47,8 @@ class Consensus : public std::enable_shared_from_this<Consensus>
 	std::shared_ptr<LeaderRotation> m_leader_rotation;
 	std::shared_ptr<spdlog::logger> m_logger;
 
+	CppTime::Timer m_timer_manager;
+
 	Round m_next_vote_round;
 	std::shared_ptr<Block> m_lock;
 	BlockCertificate m_high_cert;

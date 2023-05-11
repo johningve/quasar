@@ -4,6 +4,10 @@ package Quasar.Proto;
 
 option optimize_for = LITE_RUNTIME;
 
+message Payload {
+  repeated bytes transactions = 1;
+}
+
 message Signature {
   bytes data = 1;
   bytes signer = 2;
@@ -15,7 +19,7 @@ message Certificate {
 
 message Block {
   bytes parent = 1;
-  bytes payload = 2;
+  Payload payload = 2;
   Certificate certificate = 3;
   uint64 round = 4;
 }
@@ -36,7 +40,7 @@ message MessageData {
 }
 
 message Vote {
-  uint64 round = 1;
+  bytes block_hash = 2;
 }
 
 message Wish {

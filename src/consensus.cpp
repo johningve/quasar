@@ -35,7 +35,15 @@ void Consensus::init()
 
 		if (self->m_leader_rotation->leader(all_nodes, round) == self->m_keystore->identity())
 		{
-			self->make_proposal();
+			if (!timeout)
+			{
+				self->make_proposal();
+			}
+			// wait for about one theta (that is, the message passing delay)
+			self->m_timer_manager.add(self->m_synchronizer->round_duration() / 2, [self](auto timer_id) {
+				self->m_timer_manager.remove(timer_id);
+				self->m_event_queue->dispatch(EventType::CALLBACK, [self]() { self->make_proposal(); });
+			});
 		}
 	});
 }
@@ -52,20 +60,20 @@ void Consensus::handle_message(const Signature &sig, const Proto::MessageData &m
 	}
 }
 
-Proto::Message make_vote(const Signature &signature, Round round)
+Proto::Message make_vote(const Signature &signature, Hash hash)
 {
 	Proto::Message msg;
 	auto sig_ptr = msg.mutable_signature();
 	*sig_ptr = signature.to_proto();
 	auto data_ptr = msg.mutable_data();
 	auto vote_ptr = data_ptr->mutable_vote();
-	vote_ptr->set_round(round);
+	vote_ptr->set_block_hash(hash.to_byte_string());
 	return msg;
 }
 
 void Consensus::handle_proposal(const Signature &sig, const Proto::MessageData &msg)
 {
-	Block proposal{msg.proposal()};
+	const Block proposal{msg.proposal()};
 
 	auto parent = m_blockchain->find(proposal.parent());
 	if (!parent)
@@ -113,8 +121,8 @@ void Consensus::handle_proposal(const Signature &sig, const Proto::MessageData &
 
 	stop_voting(proposal.round());
 
-	auto vote = Crypto::sign(msg.proposal().SerializeAsString(), *m_keystore->private_key());
-	auto vote_msg = make_vote(vote, m_synchronizer->round());
+	auto vote = Crypto::sign(proposal.hash().to_byte_string(), *m_keystore->private_key());
+	auto vote_msg = make_vote(vote, proposal.hash());
 
 	auto all_nodes = m_network->connected_peers();
 	all_nodes.push_back(m_keystore->identity());
@@ -131,7 +139,15 @@ void Consensus::handle_proposal(const Signature &sig, const Proto::MessageData &
 
 void Consensus::handle_vote(const Signature &sig, const Proto::MessageData &msg)
 {
-	auto round = (Round)msg.vote().round();
+	auto block_hash = Hash::from_byte_string(msg.vote().block_hash());
+	auto block = m_blockchain->find(block_hash);
+	if (block == nullptr)
+	{
+		m_logger->warn("could not find block {:.8} referenced by vote", block_hash.to_hex_string());
+		return;
+	}
+	auto round = block->round();
+
 	if (m_synchronizer->round() > round)
 	{
 		// too old
@@ -142,20 +158,39 @@ void Consensus::handle_vote(const Signature &sig, const Proto::MessageData &msg)
 	auto &votes = m_votes[round];
 	votes.push_back(sig);
 
-	if (votes.size() >= quorum_size(m_network->size()))
+	if (votes.size() < quorum_size(m_network->size()))
 	{
-		Certificate cert(votes);
-		// clear votes so that we don't create the cert again if another vote shows up later
-		votes.clear();
-
-		m_synchronizer->advance_to(round + 1);
+		return;
 	}
+
+	const Certificate cert(votes);
+	// clear votes so that we don't create the cert again if another vote shows up later
+	votes.clear();
+
+	auto high_cert_block = m_blockchain->find(m_high_cert.block_hash);
+	if (high_cert_block == nullptr)
+	{
+		m_logger->error("could not find the block {:.8} certified by high_cert",
+		                m_high_cert.block_hash.to_hex_string());
+		return;
+	}
+
+	if (round <= high_cert_block->round())
+	{
+		m_logger->error("created cert (round={}) ranks lower than high_cert (round={})", round,
+		                high_cert_block->round());
+		return;
+	}
+
+	m_high_cert = {cert, block_hash};
+
+	m_synchronizer->advance_to(round + 1);
 }
 
 void Consensus::make_proposal()
 {
 	// TODO: get a payload from Mempool
-	Block proposal{m_high_cert.block_hash, m_high_cert.certificate, m_synchronizer->round(), {}};
+	const Block proposal{m_high_cert.block_hash, m_high_cert.certificate, m_synchronizer->round(), {}};
 
 	Proto::Message msg;
 	auto msg_data_ptr = msg.mutable_data();
