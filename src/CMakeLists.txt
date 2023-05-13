@@ -8,7 +8,7 @@ add_library(quasar
         blockchain.cpp blockchain.h
         testing/test_network.cpp testing/test_network.h
         quasar.cpp quasar.h
-        exception.cpp exception.h keystore.cpp keystore.h consensus.cpp consensus.h synchronizer.cpp synchronizer.h leader_rotation.cpp leader_rotation.h quorum.h round_duration.cpp mempool.cpp mempool.h)
+        exception.cpp exception.h keystore.cpp keystore.h consensus.cpp consensus.h synchronizer.cpp synchronizer.h leader_rotation.cpp leader_rotation.h quorum.h round_duration.cpp mempool.cpp mempool.h settings.h)
 
 target_include_directories(quasar PUBLIC
         ${BOTAN_INCLUDE_DIR}

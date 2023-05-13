@@ -1,5 +1,7 @@
 #include "blockchain.h"
+
 #include "crypto.h"
+#include <utility>
 
 namespace Quasar
 {
@@ -21,7 +23,7 @@ std::shared_ptr<Block> Blockchain::find(Hash hash) const
 	return entry->second;
 }
 
-void Blockchain::add(Block block)
+void Blockchain::add(const Block &block)
 {
 	auto ptr = std::make_shared<Block>(block);
 	auto hash = ptr->hash();
@@ -33,10 +35,25 @@ std::shared_ptr<Block> Blockchain::committed_block() const
 	return m_committed;
 }
 
-void Blockchain::commit(std::shared_ptr<Block> block)
+void Blockchain::commit(const std::shared_ptr<Block> &block)
 {
-	// TODO: run a commit callback for all blocks between block and the old m_committed
+	auto parent = find(block->parent());
+	if (m_committed->round() < parent->round())
+	{
+		commit(parent);
+	}
+
+	if (m_commit_handler)
+	{
+		m_commit_handler(block);
+	}
+
 	m_committed = block;
+}
+
+void Blockchain::set_commit_handler(std::function<void(std::shared_ptr<Block>)> handler)
+{
+	m_commit_handler = std::move(handler);
 }
 
 } // namespace Quasar

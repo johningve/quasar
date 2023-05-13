@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <queue>
 
 #include "types.h"
@@ -11,7 +12,7 @@ class Mempool
 {
   public:
 	void add(const Transaction &transaction);
-	Transaction next();
+	std::optional<Transaction> next();
 
   private:
 	std::queue<Transaction> m_tx_queue;

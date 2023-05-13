@@ -3,8 +3,18 @@
 #include "crypto.h"
 #include "round_duration.h"
 
-Quasar::RoundDuration::RoundDuration() : RoundDuration(100, 0.1, 1.0, 1.2)
+Quasar::RoundDuration::RoundDuration() : RoundDuration(100, 100, 1000, 1.2)
 {
+}
+
+Quasar::RoundDuration::RoundDuration(const Quasar::Settings::RoundDuration &settings)
+{
+	m_max_history_size = settings.history_size();
+	m_mean_duration =
+	    std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(settings.start_timeout()).count();
+	m_max_timeout =
+	    std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(settings.max_timeout()).count();
+	m_timeout_multiplier = settings.timeout_multiplier();
 }
 
 Quasar::RoundDuration::RoundDuration(uint64_t history_size, double start_timeout, double max_timeout,
@@ -27,7 +37,8 @@ void Quasar::RoundDuration::round_succeeded()
 		return;
 	}
 
-	double duration = std::chrono::duration<double>(m_measurement_start - std::chrono::system_clock::now()).count();
+	double duration =
+	    std::chrono::duration<double, std::milli>(m_measurement_start - std::chrono::system_clock::now()).count();
 
 	m_count++;
 
@@ -64,7 +75,7 @@ void Quasar::RoundDuration::round_timed_out()
 	m_mean_duration *= m_timeout_multiplier;
 }
 
-std::chrono::duration<double> Quasar::RoundDuration::expected_duration() const
+std::chrono::milliseconds Quasar::RoundDuration::expected_duration() const
 {
 	double conf = 1.96; // 95% confidence
 	double dev = 0;
@@ -87,5 +98,5 @@ std::chrono::duration<double> Quasar::RoundDuration::expected_duration() const
 		duration = m_max_timeout;
 	}
 
-	return std::chrono::duration<double>(duration);
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double, std::milli>(duration));
 }

@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+#include "settings.h"
+
 namespace Quasar
 {
 
@@ -10,11 +12,12 @@ class RoundDuration
 {
   public:
 	RoundDuration();
+	explicit RoundDuration(const Settings::RoundDuration &settings);
 	RoundDuration(uint64_t history_size, double start_timeout, double max_timeout, double timeout_multiplier);
 	void round_started();
 	void round_succeeded();
 	void round_timed_out();
-	std::chrono::duration<double> expected_duration() const;
+	std::chrono::milliseconds expected_duration() const;
 
   private:
 	double m_timeout_multiplier;

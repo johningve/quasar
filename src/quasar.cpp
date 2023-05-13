@@ -8,8 +8,8 @@
 namespace Quasar
 {
 
-Quasar::Quasar(std::shared_ptr<Keystore> keystore, std::shared_ptr<Network> network,
-               const RoundDuration &round_duration, std::shared_ptr<LeaderRotation> leader_rotation)
+Quasar::Quasar(const Settings &settings, std::shared_ptr<Keystore> keystore, std::shared_ptr<Network> network,
+               std::shared_ptr<LeaderRotation> leader_rotation)
     : m_keystore(std::move(keystore)), m_network(std::move(network)), m_logger(spdlog::stderr_color_mt("stderr")),
       m_leader_rotation(std::move(leader_rotation))
 {
@@ -17,7 +17,8 @@ Quasar::Quasar(std::shared_ptr<Keystore> keystore, std::shared_ptr<Network> netw
 	                                          m_leader_rotation, m_logger);
 	m_consensus->init();
 
-	m_synchronizer = std::make_shared<Synchronizer>(round_duration, m_event_queue, m_network, m_keystore, m_logger);
+	m_synchronizer = std::make_shared<Synchronizer>(RoundDuration{settings.round_duration()}, m_event_queue, m_network,
+	                                                m_keystore, m_logger);
 	m_synchronizer->init();
 
 	// push network messages to event_queue

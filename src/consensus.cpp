@@ -5,14 +5,14 @@
 namespace Quasar
 {
 
-Consensus::Consensus(const std::shared_ptr<EventQueue> &event_queue, const std::shared_ptr<Blockchain> &blockchain,
-                     const std::shared_ptr<Keystore> &keystore, const std::shared_ptr<Network> &network,
-                     const std::shared_ptr<Synchronizer> &synchronizer,
+Consensus::Consensus(const Settings::Consensus &settings, const std::shared_ptr<EventQueue> &event_queue,
+                     const std::shared_ptr<Blockchain> &blockchain, const std::shared_ptr<Keystore> &keystore,
+                     const std::shared_ptr<Network> &network, const std::shared_ptr<Synchronizer> &synchronizer,
                      const std::shared_ptr<LeaderRotation> &leader_rotation,
                      const std::shared_ptr<spdlog::logger> &logger)
-    : m_event_queue(event_queue), m_blockchain(blockchain), m_keystore(keystore), m_network(network),
-      m_synchronizer(synchronizer), m_leader_rotation(leader_rotation), m_logger(logger),
-      m_lock(std::make_shared<Block>(GENESIS)), m_high_cert({GENESIS_CERT, GENESIS.hash()})
+    : m_settings(settings), m_event_queue(event_queue), m_blockchain(blockchain), m_keystore(keystore),
+      m_network(network), m_synchronizer(synchronizer), m_leader_rotation(leader_rotation), m_logger(logger),
+      m_lock(std::make_shared<Block>(GENESIS)), m_high_cert({GENESIS_CERT, GENESIS.hash()}), m_next_vote_round(1)
 {
 }
 
@@ -185,6 +185,8 @@ void Consensus::handle_vote(const Signature &sig, const Proto::MessageData &msg)
 	m_high_cert = {cert, block_hash};
 
 	m_synchronizer->advance_to(round + 1);
+
+	cleanup_votes(round + 1);
 }
 
 void Consensus::make_proposal()

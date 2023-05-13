@@ -11,6 +11,7 @@
 #include "keystore.h"
 #include "leader_rotation.h"
 #include "network.h"
+#include "settings.h"
 #include "synchronizer.h"
 
 namespace Quasar
@@ -19,7 +20,7 @@ namespace Quasar
 class Quasar
 {
   public:
-	Quasar(std::shared_ptr<Keystore> keystore, std::shared_ptr<Network> network, const RoundDuration &round_duration,
+	Quasar(const Settings &settings, std::shared_ptr<Keystore> keystore, std::shared_ptr<Network> network,
 	       std::shared_ptr<LeaderRotation> leader_rotation);
 
 	void run();

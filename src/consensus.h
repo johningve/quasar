@@ -21,10 +21,10 @@ struct BlockCertificate
 class Consensus : public std::enable_shared_from_this<Consensus>
 {
   public:
-	Consensus(const std::shared_ptr<EventQueue> &event_queue, const std::shared_ptr<Blockchain> &blockchain,
-	          const std::shared_ptr<Keystore> &keystore, const std::shared_ptr<Network> &network,
-	          const std::shared_ptr<Synchronizer> &synchronizer, const std::shared_ptr<LeaderRotation> &leader_rotation,
-	          const std::shared_ptr<spdlog::logger> &logger);
+	Consensus(const Settings::Consensus &settings, const std::shared_ptr<EventQueue> &event_queue,
+	          const std::shared_ptr<Blockchain> &blockchain, const std::shared_ptr<Keystore> &keystore,
+	          const std::shared_ptr<Network> &network, const std::shared_ptr<Synchronizer> &synchronizer,
+	          const std::shared_ptr<LeaderRotation> &leader_rotation, const std::shared_ptr<spdlog::logger> &logger);
 
 	// init sets up event handlers
 	void init();
@@ -38,6 +38,8 @@ class Consensus : public std::enable_shared_from_this<Consensus>
 
 	void stop_voting(Round round);
 	void cleanup_votes(Round min_round);
+
+	Settings::Consensus m_settings;
 
 	std::shared_ptr<EventQueue> m_event_queue;
 	std::shared_ptr<Blockchain> m_blockchain;
